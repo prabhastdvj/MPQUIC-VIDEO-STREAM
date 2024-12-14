@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MPQUIC Video Stream</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2rem;
+            width: 100%;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            font-size: 2.8rem;
+            font-weight: 600;
+        }
+
+        .header p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 2rem;
+            width: 100%;
+            align-items: flex-start;
+        }
+
+        .video-container {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1.5rem;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            min-width: 0;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        video {
+            width: 100%;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.2);
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .camera-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #94a3b8;
+            display: none;
+            background: rgba(15, 23, 42, 0.9);
+            padding: 2.5rem;
+            border-radius: 16px;
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            width: 280px;
+        }
+
+        .camera-overlay.show {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { 
+                opacity: 0; 
+                transform: translate(-50%, -48%);
+            }
+            to { 
+                opacity: 1; 
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .camera-icon {
+            font-size: 3.5rem;
+            margin-bottom: 1.2rem;
+            color: #3b82f6;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.1);
+                opacity: 0.8;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .controls {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+            padding: 0 1rem;
+        }
+
+        button {
+            padding: 1rem 2.5rem;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .start-btn {
+            background: linear-gradient(45deg, #3b82f6, #2563eb);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .start-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .stop-btn {
+            background: linear-gradient(45deg, #ef4444, #dc2626);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .metrics {
+            width: 320px;
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1.5rem;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .metrics h3 {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 1.5rem;
+            font-size: 1.4rem;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .metrics-grid {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .metric-item {
+            padding: 1.2rem;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .metric-item:hover {
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .metric-label {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .status {
+            margin-top: 1rem;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            text-align: center;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .status.connected {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .status.disconnected {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .metrics {
+                width: 100%;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MPQUIC Video Stream</h1>
+            <p>High-performance video streaming using Multipath QUIC protocol</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="video-container">
+                <video id="videoPlayer" autoplay playsinline></video>
+                <div class="camera-overlay" id="cameraOverlay">
+                    <i class="fas fa-video camera-icon"></i>
+                    <p>Camera is currently inactive</p>
+                    <p style="font-size: 0.9rem; margin-top: 0.5rem; color: #64748b">Click Start to begin streaming</p>
+                </div>
+                <div class="controls">
+                    <button class="start-btn" id="startBtn">
+                        <i class="fas fa-play"></i>
+                        Start Stream
+                    </button>
+                    <button class="stop-btn" id="stopBtn" disabled>
+                        <i class="fas fa-stop"></i>
+                        Stop Stream
+                    </button>
+                </div>
+                <div class="status disconnected" id="status">
+                    <i class="fas fa-circle"></i>
+                    <span>Disconnected</span>
+                </div>
+            </div>
+            
+            <div class="metrics">
+                <h3>Stream Metrics</h3>
+                <div class="metrics-grid">
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fas fa-tachometer-alt"></i>
+                            Bitrate
+                        </div>
+                        <div class="metric-value" id="bitrate">0 Mbps</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fas fa-clock"></i>
+                            Latency
+                        </div>
+                        <div class="metric-value" id="latency">0 ms</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fas fa-network-wired"></i>
+                            Active Paths
+                        </div>
+                        <div class="metric-value" id="paths">0</div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-label">
+                            <i class="fas fa-chart-line"></i>
+                            Frame Rate
+                        </div>
+                        <div class="metric-value" id="fps">0 fps</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('videoPlayer');
+        const statusElement = document.getElementById('status');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        let ws = null;
+        let mediaSource = null;
+        let sourceBuffer = null;
+        let mimeCodec = 'video/mp2t; codecs="avc1.42E01F"';
+
+        // Show camera overlay initially
+        cameraOverlay.classList.add('show');
+
+        async function startStream() {
+            try {
+                startBtn.disabled = true;
+                cameraOverlay.classList.remove('show');
+
+                if (ws) {
+                    ws.close();
+                }
+
+                // Create MediaSource
+                mediaSource = new MediaSource();
+                video.src = URL.createObjectURL(mediaSource);
+
+                mediaSource.addEventListener('sourceopen', () => {
+                    // Create WebSocket connection
+                    ws = new WebSocket(`ws://${window.location.host}/stream`);
+                    ws.binaryType = 'arraybuffer';
+
+                    // Use MPEGTS format
+                    sourceBuffer = mediaSource.addSourceBuffer(mimeCodec);
+                    sourceBuffer.mode = 'segments';
+
+                    let queue = [];
+                    sourceBuffer.addEventListener('updateend', () => {
+                        if (queue.length > 0 && !sourceBuffer.updating) {
+                            try {
+                                sourceBuffer.appendBuffer(queue.shift());
+                            } catch (e) {
+                                console.error('Buffer append error:', e);
+                            }
+                        }
+                    });
+
+                    statusElement.textContent = 'Connecting...';
+                    statusElement.className = 'status connecting';
+
+                    ws.onopen = () => {
+                        statusElement.textContent = 'Connected';
+                        statusElement.className = 'status connected';
+                        stopBtn.disabled = false;
+                    };
+
+                    ws.onmessage = async (event) => {
+                        if (sourceBuffer) {
+                            try {
+                                if (!sourceBuffer.updating) {
+                                    sourceBuffer.appendBuffer(event.data);
+                                } else {
+                                    queue.push(event.data);
+                                }
+                            } catch (e) {
+                                console.error('Error appending buffer:', e);
+                            }
+                        }
+                    };
+
+                    ws.onerror = (error) => {
+                        console.error('WebSocket Error:', error);
+                        stopStream();
+                    };
+
+                    ws.onclose = () => {
+                        stopStream();
+                    };
+                });
+            } catch (error) {
+                console.error('Stream start error:', error);
+                stopStream();
+            }
+        }
+
+        function stopStream() {
+            if (ws) {
+                ws.close();
+            }
+            if (mediaSource && mediaSource.readyState === 'open') {
+                mediaSource.endOfStream();
+            }
+            video.src = '';
+            statusElement.textContent = 'Disconnected';
+            statusElement.className = 'status disconnected';
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            cameraOverlay.classList.add('show');
+        }
+
+        // Clean up on page unload
+        window.onbeforeunload = () => {
+            if (ws) {
+                ws.close();
+            }
+        };
+    </script>
+</body>
+</html> 
